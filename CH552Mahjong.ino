@@ -14,15 +14,25 @@ COM 4- 7   | L | T | W | F | B | S |
              0   1   2   3   4   5
              -   -   -   -   -   -
              4   5   8   9  11   1
+
 */
 
 #ifndef USER_USB_RAM
 #error "This example needs to be compiled with a USER USB setting"
 #endif
 
-#include "src/userUsbHidKeyboard/USBHIDKeyboard.h"
+#include "src/userUsbComposite/USBCDC.h"
+#include "src/userUsbComposite/USBHIDKeyboard.h"
 
-#define LED_BUILTIN 33
+void USBInit() {
+  USBDeviceCfg();         // Device mode configuration
+  USBDeviceEndPointCfg(); // Endpoint configuration
+  USBDeviceIntCfg();      // Interrupt configuration
+  UEP0_T_LEN = 0;
+  UEP1_T_LEN = 0; // Pre-use send length must be cleared
+  UEP2_T_LEN = 0;
+  UEP3_T_LEN = 0;
+}
 
 #define ROWS 5
 #define COLS 6
@@ -75,8 +85,38 @@ void loop()
   char key = getKey();
 
   if (key != 0){
-    digitalWrite(LED_BUILTIN, HIGH);
-    Keyboard_write(key);
-    digitalWrite(LED_BUILTIN, LOW);
+    //Keyboard_write(key);
+    USBSerial_print(key);
+  }
+  while (USBSerial_available()) {
+    char serialChar = USBSerial_read();
+    if ((serialChar == '\n') || (serialChar == '\r') ) {
+      recvStr[recvStrPtr] = '\0';
+      if (recvStrPtr > 0) {
+        stringComplete = true;
+        break;
+      }
+    } else {
+      recvStr[recvStrPtr] = serialChar;
+      recvStrPtr++;
+      if (recvStrPtr == 63) {
+        recvStr[recvStrPtr] = '\0';
+        stringComplete = true;
+        break;
+      }
+    }
+  }
+
+  if (stringComplete) {
+    if(recvStr.startsWith("mame_start = "))
+    USBSerial_println("nice machine");
+    USBSerial_flush();
+    stringComplete = false;
+    recvStrPtr = 0;
+
+    echoCounter++;
+    USBSerial_print("echo count: ");
+    USBSerial_println(echoCounter);
+    USBSerial_flush();
   }
 }

@@ -8,11 +8,10 @@
 // clang-format on
 
 // clang-format off
-extern __xdata __at (EP0_ADDR) uint8_t Ep0Buffer[];
-extern __xdata __at (EP1_ADDR) uint8_t Ep1Buffer[];
+extern __xdata __at (EP3_ADDR) uint8_t Ep3Buffer[];
 // clang-format on
 
-volatile __xdata uint8_t UpPoint1_Busy =
+volatile __xdata uint8_t UpPoint3_Busy =
     0; // Flag of whether upload pointer is busy
 
 __xdata uint8_t HIDKey[8] = {0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0};
@@ -154,28 +153,19 @@ typedef void (*pTaskFn)(void);
 
 void delayMicroseconds(uint16_t us);
 
-void USBInit() {
-  USBDeviceCfg();         // Device mode configuration
-  USBDeviceEndPointCfg(); // Endpoint configuration
-  USBDeviceIntCfg();      // Interrupt configuration
-  UEP0_T_LEN = 0;
-  UEP1_T_LEN = 0; // Pre-use send length must be cleared
-  UEP2_T_LEN = 0;
+void USB_EP3_IN() {
+  UEP3_T_LEN = 0;
+  UEP3_CTRL = UEP3_CTRL & ~MASK_UEP_T_RES | UEP_T_RES_NAK; // Default NAK
+  UpPoint3_Busy = 0;                                       // Clear busy flag
 }
 
-void USB_EP1_IN() {
-  UEP1_T_LEN = 0;
-  UEP1_CTRL = UEP1_CTRL & ~MASK_UEP_T_RES | UEP_T_RES_NAK; // Default NAK
-  UpPoint1_Busy = 0;                                       // Clear busy flag
-}
-
-void USB_EP1_OUT() {
+void USB_EP3_OUT() {
   if (U_TOG_OK) // Discard unsynchronized packets
   {
   }
 }
 
-uint8_t USB_EP1_send() {
+uint8_t USB_EP3_send() {
   if (UsbConfig == 0) {
     return 0;
   }
@@ -183,7 +173,7 @@ uint8_t USB_EP1_send() {
   __data uint16_t waitWriteCount = 0;
 
   waitWriteCount = 0;
-  while (UpPoint1_Busy) { // wait for 250ms or give up
+  while (UpPoint3_Busy) { // wait for 250ms or give up
     waitWriteCount++;
     delayMicroseconds(5);
     if (waitWriteCount >= 50000)
@@ -191,12 +181,12 @@ uint8_t USB_EP1_send() {
   }
 
   for (__data uint8_t i = 0; i < sizeof(HIDKey); i++) { // load data for upload
-    Ep1Buffer[64 + i] = HIDKey[i];
+    Ep3Buffer[64 + i] = HIDKey[i];
   }
 
-  UEP1_T_LEN = sizeof(HIDKey); // data length
-  UpPoint1_Busy = 1;
-  UEP1_CTRL = UEP1_CTRL & ~MASK_UEP_T_RES |
+  UEP3_T_LEN = sizeof(HIDKey); // data length
+  UpPoint3_Busy = 1;
+  UEP3_CTRL = UEP3_CTRL & ~MASK_UEP_T_RES |
               UEP_T_RES_ACK; // upload data and respond ACK
 
   return 1;
@@ -238,7 +228,7 @@ uint8_t Keyboard_press(__data uint8_t k) {
       return 0;
     }
   }
-  USB_EP1_send();
+  USB_EP3_send();
   return 1;
 }
 
@@ -270,7 +260,7 @@ uint8_t Keyboard_release(__data uint8_t k) {
     }
   }
 
-  USB_EP1_send();
+  USB_EP3_send();
   return 1;
 }
 
@@ -278,7 +268,7 @@ void Keyboard_releaseAll(void) {
   for (__data uint8_t i = 0; i < sizeof(HIDKey); i++) { // load data for upload
     HIDKey[i] = 0;
   }
-  USB_EP1_send();
+  USB_EP3_send();
 }
 
 uint8_t Keyboard_write(__data uint8_t c) {
@@ -286,8 +276,4 @@ uint8_t Keyboard_write(__data uint8_t c) {
   Keyboard_release(c);                  // Keyup
   return p; // just return the result of press() since release() almost always
             // returns 1
-}
-
-uint8_t Keyboard_getLEDStatus() {
-  return Ep1Buffer[0]; // The only info we gets
 }

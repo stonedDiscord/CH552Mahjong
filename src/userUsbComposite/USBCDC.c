@@ -18,8 +18,8 @@ extern __xdata __at (EP2_ADDR) uint8_t Ep2Buffer[];
 
 #define LINE_CODEING_SIZE 7
 __xdata uint8_t LineCoding[LINE_CODEING_SIZE] = {
-    0x00, 0xe1, 0x00, 0x00,
-    0x00, 0x00, 0x08}; // Initialize for baudrate 57600, 1 stopbit, No parity,
+    0x01, 0xc2, 0x00, 0x00,
+    0x00, 0x00, 0x08}; // Initialize for baudrate 115200, 1 stopbit, No parity,
                        // eight data bits
 
 volatile __xdata uint8_t USBByteCountEP2 =
@@ -32,15 +32,6 @@ volatile __xdata uint8_t controlLineState = 0;
 __xdata uint8_t usbWritePointer = 0;
 
 void delayMicroseconds(__data uint16_t us);
-
-void USBInit() {
-  USBDeviceCfg();         // Device mode configuration
-  USBDeviceEndPointCfg(); // Endpoint configuration
-  USBDeviceIntCfg();      // Interrupt configuration
-  UEP0_T_LEN = 0;
-  UEP1_T_LEN = 0; // Pre-use send length must be cleared
-  UEP2_T_LEN = 0;
-}
 
 void resetCDCParameters() {
 

@@ -11,8 +11,6 @@
 extern "C" {
 #endif
 
-void USBInit(void);
-
 #ifdef __cplusplus
 } // extern "C"
 #endif

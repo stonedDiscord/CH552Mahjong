@@ -60,8 +60,6 @@
 extern "C" {
 #endif
 
-void USBInit(void);
-
 uint8_t Keyboard_press(__data uint8_t k);
 uint8_t Keyboard_release(__data uint8_t k);
 void Keyboard_releaseAll(void);
