@@ -1,4 +1,3 @@
-#include "src/userUsbHidKeyboard/USBHIDKeyboard.h"
 /*   
    Mahjong CP Multiplex
 
@@ -16,9 +15,18 @@ COM 4- 7   | L | T | W | F | B | S |
              -   -   -   -   -   -
              4   5   8   9  11   1
 */
+
+#ifndef USER_USB_RAM
+#error "This example needs to be compiled with a USER USB setting"
+#endif
+
+#include "src/userUsbHidKeyboard/USBHIDKeyboard.h"
+
 #define LED_BUILTIN 33
+
 #define ROWS 5
 #define COLS 6
+
 const char keys[ROWS][COLS] = {
   {'A','E','I','M',KEY_LEFT_CTRL, '1'},
   {'B','F','J','N',KEY_LEFT_SHIFT,'3'},
@@ -31,6 +39,7 @@ const byte colPins[COLS] = {13,37,36,35,34,33};
 
 void setup()
 {
+  USBInit();
   pinMode(LED_BUILTIN, OUTPUT);
   digitalWrite(LED_BUILTIN, LOW);
   for(char r = 0; r < ROWS; r++){
