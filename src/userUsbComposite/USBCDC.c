@@ -18,8 +18,8 @@ extern __xdata __at (EP2_ADDR) uint8_t Ep2Buffer[];
 
 #define LINE_CODEING_SIZE 7
 __xdata uint8_t LineCoding[LINE_CODEING_SIZE] = {
-    0x01, 0xc2, 0x00, 0x00,
-    0x00, 0x00, 0x08}; // Initialize for baudrate 115200, 1 stopbit, No parity,
+    0x00, 0xe1, 0x00, 0x00,
+    0x00, 0x00, 0x08}; // Initialize for baudrate 57600, 1 stopbit, No parity,
                        // eight data bits
 
 volatile __xdata uint8_t USBByteCountEP2 =

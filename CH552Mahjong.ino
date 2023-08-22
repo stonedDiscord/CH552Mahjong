@@ -24,6 +24,11 @@ COM 4- 7   | L | T | W | F | B | S |
 #include "src/userUsbComposite/USBCDC.h"
 #include "src/userUsbComposite/USBHIDKeyboard.h"
 
+__xdata char recvStr[64];
+char machine[12];
+uint8_t recvStrPtr = 0;
+bool stringComplete = false;
+
 void USBInit() {
   USBDeviceCfg();         // Device mode configuration
   USBDeviceEndPointCfg(); // Endpoint configuration
@@ -36,6 +41,7 @@ void USBInit() {
 
 #define ROWS 5
 #define COLS 6
+#define LED_PIN 30
 
 const char keys[ROWS][COLS] = {
   {'A','E','I','M',KEY_LEFT_CTRL, '1'},
@@ -45,22 +51,23 @@ const char keys[ROWS][COLS] = {
   {KEY_RIGHT_ALT,KEY_RIGHT_CTRL,KEY_RIGHT_SHIFT,'Y',KEY_RETURN,KEY_BACKSPACE}
 };
 const byte rowPins[ROWS] = {17,16,15,14,32};
-const byte colPins[COLS] = {13,37,36,35,34,33};
+const byte colPins[COLS] = {31,37,36,35,34,33};
 
 void setup()
 {
   USBInit();
-  pinMode(LED_BUILTIN, OUTPUT);
-  digitalWrite(LED_BUILTIN, LOW);
+  pinMode(LED_PIN, OUTPUT);
+  digitalWrite(LED_PIN, HIGH);
+  delay(100);
+  digitalWrite(LED_PIN, LOW);
+   
   for(char r = 0; r < ROWS; r++){
-         pinMode(rowPins[r], INPUT);    //set the row pins as input
-         digitalWrite(rowPins[r], HIGH);    //turn on the pullups
+         pinMode(rowPins[r], INPUT_PULLUP);
    }
-  digitalWrite(LED_BUILTIN, HIGH);
   for(char c = 0; c < COLS; c++){
          pinMode(colPins[c], OUTPUT);   //set the column pins as output
+         digitalWrite(colPins[c], HIGH); 
   }
-  digitalWrite(LED_BUILTIN, LOW);
 }
 
 char getKey(){
@@ -70,9 +77,10 @@ char getKey(){
         digitalWrite(colPins[c], LOW);
          for(char r = 0; r < ROWS; r++){
             if(digitalRead(rowPins[r]) == LOW){
-            delay(20);    //20ms debounce time
+              digitalWrite(LED_PIN, HIGH);
+              delay(20);    //20ms debounce time
             while(digitalRead(rowPins[r])== LOW);
-            k = keys[r][c];
+              k = keys[r][c];
             }
          }
       digitalWrite(colPins[c], HIGH); 
@@ -85,8 +93,8 @@ void loop()
   char key = getKey();
 
   if (key != 0){
-    //Keyboard_write(key);
-    USBSerial_print(key);
+    Keyboard_write(key);
+    digitalWrite(LED_PIN, LOW);
   }
   while (USBSerial_available()) {
     char serialChar = USBSerial_read();
@@ -108,15 +116,28 @@ void loop()
   }
 
   if (stringComplete) {
-    if(recvStr.startsWith("mame_start = "))
-    USBSerial_println("nice machine");
-    USBSerial_flush();
+    if(strstr(recvStr,"mame_start = ")) {
+      strncpy(machine, recvStr + 13, 12);
+      USBSerial_println("nice machine");
+      USBSerial_flush();
+    } else if (strstr(recvStr,"=")) {
+      uint8_t ledn = 0;
+      for (uint8_t i = 0; i < NUM_LEDS; i++) {
+        if(strchr(recvStr,i+'0')) {
+          ledn=i;
+        }
+      }
+      if (strstr(recvStr,"red")) {
+        //set_pixel_for_GRB_LED(ledData, ledn, 0, 1, 0);
+      } else if (strstr(recvStr,"green")) {
+        //set_pixel_for_GRB_LED(ledData, ledn, 1, 0, 0);
+      } else if (strstr(recvStr,"blue")) {
+        //set_pixel_for_GRB_LED(ledData, ledn, 0, 0, 1);
+      }
+      //neopixel_show_P1_5(ledData, NUM_BYTES);
+    }
+    
     stringComplete = false;
     recvStrPtr = 0;
-
-    echoCounter++;
-    USBSerial_print("echo count: ");
-    USBSerial_println(echoCounter);
-    USBSerial_flush();
   }
 }
